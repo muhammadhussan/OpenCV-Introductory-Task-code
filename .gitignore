@@ -1,83 +1,87 @@
+#include <opencv2/opencv.hpp>
 #include <iostream>
-#include <stdio.h>
-#include "opencv2/core.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
 
 using namespace std;
 using namespace cv;
 
+// Function to perform colour thresholding on an input image
+Mat colourThresholding(const Mat& input, int hMin, int hMax, int sMin, int sMax, int vMin, int vMax)
+{
+    // Convert input image to HSV
+    Mat hsv;
+    cvtColor(input, hsv, COLOR_BGR2HSV);
+
+    // Threshold HSV image using provided values
+    Scalar lower(hMin, sMin, vMin);
+    Scalar upper(hMax, sMax, vMax);
+    Mat hsvim;
+    inRange(hsv, lower, upper, hsvim);
+
+    // Convert mask to BGR for display
+    Mat maskBGR;
+    cvtColor(hsvim, maskBGR, COLOR_GRAY2BGR);
+
+    // Apply mask to original BGR image to display colour thresholding
+    Mat result;
+    bitwise_and(input, maskBGR, result);
+
+    return result;
+}
+
+// Function to create trackbar for colour thresholding values
+void createTrackbars(string windowName, int& hMin, int& hMax, int& sMin, int& sMax, int& vMin, int& vMax)
+{
+    namedWindow(windowName, WINDOW_NORMAL);
+    resizeWindow(windowName, 640, 200);
+    createTrackbar("Hue Min", windowName, &hMin, 179);
+    createTrackbar("Hue Max", windowName, &hMax, 179);
+    createTrackbar("Sat Min", windowName, &sMin, 255);
+    createTrackbar("Sat Max", windowName, &sMax, 255);
+    createTrackbar("Val Min", windowName, &vMin, 255);
+    createTrackbar("Val Max", windowName, &vMax, 255);
+}
+
 int main()
 {
     // Load image
-    string un = "C:/eee/OpenCV Task/Images/Star(Yellow Line).bmp";
-    string circle = "C:/eee/OpenCV Task/Images/Circle(Red Line).bmp";
-    string star = "C:/eee/OpenCV Task/Images/Star(Green Line).bmp";
-    string triangle = "C:/eee/OpenCV Task/Images/Triangle(Blue Line).bmp";
-    Mat bgrImg1 = imread(un);
-    if (bgrImg1.empty())
+    string path = "C:/eee/OpenCV Task/Images/RedCar.bmp";
+    Mat bgrImg = imread(path);
+    if (bgrImg.empty())
     {
         cout << "Could not open or find the image" << endl;
         return -1;
     }
-    Mat bgrImg2 = imread(circle);
-    if (bgrImg2.empty())
-    {
-        cout << "Could not open or find the image" << endl;
-        return -1;
-    }
-    Mat bgrImg3 = imread(star);
-    if (bgrImg3.empty())
-    {
-        cout << "Could not open or find the image" << endl;
-        return -1;
-    }
-    Mat bgrImg4 = imread(triangle);
-    if (bgrImg4.empty())
-    {
-        cout << "Could not open or find the image" << endl;
-        return -1;
-    }
-    // Convert BGR image to HSV
+
+    // Set up trackbars
+    int hMin = 0, sMin = 0, vMin = 0;
+    int hMax = 179, sMax = 255, vMax = 255;
+    createTrackbars("Trackbars", hMin, hMax, sMin, sMax, vMin, vMax);
 
 
-    // Process image with trackbar values
     while (true)
     {
-           Mat hsvImg1;
-           cvtColor(bgrImg1, hsvImg1, COLOR_BGR2HSV);
-           Mat hsvImg2;
-           cvtColor(bgrImg2, hsvImg2, COLOR_BGR2HSV);
-           Mat hsvImg3;
-           cvtColor(bgrImg3, hsvImg3, COLOR_BGR2HSV);
-           Mat hsvImg4;
-           cvtColor(bgrImg4, hsvImg4, COLOR_BGR2HSV);
-        // Get current trackbar values
-        Scalar lower(145, 50, 50);
-        Scalar upper(175, 255, 255);
+        // Apply colour thresholding to input image using trackbar values
+        Mat result = colourThresholding(bgrImg, hMin, hMax, sMin, sMax, vMin, vMax);
+        imshow("Input image", bgrImg);
+        imshow("Colour thresholding result", result);
+         // Calculate mean colour of masked image
+        Scalar meanColour = mean(result);
 
-        // Apply color thresholding to HSV image
-        Mat mask1;
-        inRange(hsvImg1, lower, upper, mask1);
-        Mat mask2;
-        inRange(hsvImg2, lower, upper, mask2);
-        Mat mask3;
-        inRange(hsvImg3, lower, upper, mask3);
-        Mat mask4;
-        inRange(hsvImg4, lower, upper, mask4);
-
-        imshow("HSV", un);
-        imshow("HSV1", mask2);
-        imshow("HSV2", mask3);
-        imshow("HSV3", mask4);
-
-
+  if (meanColour.val[0] > meanColour.val[1] && meanColour.val[0] > meanColour.val[2])
+    cout << "Colour of object: Blue" << endl;
+  else if (meanColour.val[1] > meanColour.val[0] && meanColour.val[1] > meanColour.val[2])
+    cout << "Colour of object: Green" << endl;
+  else if (meanColour[2] > meanColour[0] && meanColour[2] > meanColour[1])
+    cout << "Colour of object: Red" << endl;
+    else
+        cout << "Colour of object: undenfied" << endl;
+        // Wait for key press
         if (waitKey(1) == 27) break; // Exit if 'Esc' key is pressed
     }
 
-    // Convert final mask to BGR and show
-
+    // Wait for final key press before exiting
     waitKey(0);
 
     return 0;
 }
+
